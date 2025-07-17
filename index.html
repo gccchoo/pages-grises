@@ -1,144 +1,147 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Avis Stages Militaires</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-    .hidden { display: none; }
-    .avis { background: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    select, input[type="text"] { padding: 5px; margin-right: 10px; }
-    .filter-bar { margin-bottom: 20px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Avis Stages Militaires</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 10px; }
+  h1 { text-align: center; }
+  .avis { border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px; background: #f9f9f9; }
+  .filters { margin-bottom: 20px; }
+  label { margin-right: 10px; }
+  select, input[type="text"] { padding: 5px; margin-right: 20px; }
+  #avisContainer { margin-top: 20px; }
+</style>
 </head>
 <body>
 
-<div id="login">
-  <h2>Connexion</h2>
-  <p>Mot de passe requis :</p>
-  <input type="password" id="passwordInput">
-  <button onclick="checkPassword()">Entrer</button>
+<h1>Avis des Stages Militaires</h1>
+
+<div class="filters">
+  <label>Armée:
+    <select id="filterArmee">
+      <option value="">Toutes</option>
+    </select>
+  </label>
+  <label>Arme:
+    <select id="filterArme">
+      <option value="">Toutes</option>
+    </select>
+  </label>
+  <label>Unité:
+    <select id="filterUnite">
+      <option value="">Toutes</option>
+    </select>
+  </label>
+  <label>Recherche:
+    <input type="text" id="searchInput" placeholder="Recherche texte..." />
+  </label>
 </div>
 
-<div id="content" class="hidden">
-  <h1>Avis sur les stages militaires</h1>
-
-  <div class="filter-bar">
-    <input type="text" id="searchInput" placeholder="Recherche mot-clé">
-    <select id="armeeFilter" onchange="updateUniteFilter()"><option value="">Toutes les armes</option></select>
-    <select id="uniteFilter"><option value="">Toutes les unités</option></select>
-    <button onclick="applyFilters()">Filtrer</button>
-  </div>
-
-  <div id="avisContainer"></div>
-</div>
+<div id="avisContainer">Chargement des avis...</div>
 
 <script>
-const PASSWORD = "stage2025";
-const API_URL = "https://script.google.com/macros/s/AKfycbyfQQuDAhzLm9ruzuply-oahqEJBgl0QM-hFt_rVlBXUmj8-itqGAs0h6KwYS79qxVY-w/exec";
-
-function checkPassword() {
-  const input = document.getElementById("passwordInput").value;
-  if (input === PASSWORD) {
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("content").classList.remove("hidden");
-    fetchData();
-  } else {
-    alert("Mot de passe incorrect.");
-  }
-}
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbyfQQuDAhzLm9ruzuply-oahqEJBgl0QM-hFt_rVlBXUmj8-itqGAs0h6KwYS79qxVY-w/exec";
 
 let data = [];
-let armeeToUnites = {};
 
-function fetchData() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(json => {
-      data = json;
-      buildHierarchies(data);
-      populateFilters(data);
-      displayData(data);
-    });
-}
-
-function buildHierarchies(data) {
-  armeeToUnites = {};
-  data.forEach(item => {
-    const armee = item["Ton stage appartient à :"];
-    const unite = item["Unité"];
-    if (!armeeToUnites[armee]) armeeToUnites[armee] = new Set();
-    armeeToUnites[armee].add(unite);
-  });
-}
-
-function populateFilters(data) {
-  const armees = [...new Set(data.map(item => item["Ton stage appartient à :"]))].sort();
-  const fill = (id, list) => {
-    const el = document.getElementById(id);
-    list.forEach(val => {
-      const opt = document.createElement("option");
-      opt.value = val;
-      opt.textContent = val;
-      el.appendChild(opt);
-    });
-  };
-  fill("armeeFilter", armees);
-}
-
-function updateUniteFilter() {
-  const armee = document.getElementById("armeeFilter").value;
-  const uniteSelect = document.getElementById("uniteFilter");
-  uniteSelect.innerHTML = '<option value="">Toutes les unités</option>';
-
-  if (armee && armeeToUnites[armee]) {
-    [...armeeToUnites[armee]].sort().forEach(unite => {
-      const opt = document.createElement("option");
-      opt.value = unite;
-      opt.textContent = unite;
-      uniteSelect.appendChild(opt);
-    });
+async function fetchData() {
+  try {
+    const response = await fetch(GOOGLE_SHEET_URL);
+    const json = await response.json();
+    data = json.records || [];
+    buildFilters(data);
+    displayData(data);
+  } catch(e) {
+    document.getElementById("avisContainer").innerText = "Erreur lors du chargement des données.";
+    console.error(e);
   }
+}
+
+function buildFilters(dataset) {
+  const armeeSet = new Set();
+  const armeSet = new Set();
+  const uniteSet = new Set();
+
+  dataset.forEach(item => {
+    if (item["Armee"]) armeeSet.add(item["Armee"]);
+    if (item["Arme"]) armeSet.add(item["Arme"]);
+    if (item["Unité"]) uniteSet.add(item["Unité"]);
+  });
+
+  populateSelect("filterArmee", armeeSet);
+  populateSelect("filterArme", armeSet);
+  populateSelect("filterUnite", uniteSet);
+}
+
+function populateSelect(id, set) {
+  const select = document.getElementById(id);
+  // Supprime toutes les options sauf la première
+  while(select.options.length > 1) select.remove(1);
+
+  Array.from(set).sort().forEach(value => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.appendChild(option);
+  });
 }
 
 function displayData(dataset) {
   const container = document.getElementById("avisContainer");
   container.innerHTML = "";
+
+  if(dataset.length === 0) {
+    container.innerHTML = "<p>Aucun avis trouvé.</p>";
+    return;
+  }
+
   dataset.forEach(item => {
     const div = document.createElement("div");
     div.className = "avis";
     div.innerHTML = `
-      <strong>${item["Horodateur"] || ""} – ${item["Ton stage appartient à :"] || ""} – ${item["Unité"] || ""}</strong><br>
-      <em>${item["Ton poste durant le stage"] || "Poste inconnu"} – ${item["Quelle ecole de formation ?"] || "École non précisée"}</em><br>
-      <p>${item["Descriptif de ton stage"] || ""}</p>
+      <strong>${item["Horodateur"] || ""} – ${item["Armee"] || ""} – ${item["Unité"] || ""}</strong><br>
+      <em>${item["Poste"] || "Poste inconnu"} – ${item["Ecole"] || "École non précisée"}</em><br>
+      <p>${item["Descriprif"] || ""}</p>
       <small>
-        ${(item["Ton prénom"] || "") + " " + (item["Ton nom"] || "Anonyme")}
-        ${item["Ton numéro de tél (si tu souhaites le partager pour que les petits te contactent)"] ? 
-          " – 📞 " + item["Ton numéro de tél (si tu souhaites le partager pour que les petits te contactent)"] : ""}
+        ${(item["Prenom"] || "")} ${(item["Nom"] || "Anonyme")}
+        ${item["Telephone"] ? " – 📞 " + item["Telephone"] : ""}
       </small>
     `;
     container.appendChild(div);
   });
 }
 
-function applyFilters() {
-  const armee = document.getElementById("armeeFilter").value;
-  const unite = document.getElementById("uniteFilter").value;
-  const keyword = document.getElementById("searchInput").value.toLowerCase();
+function filterAndDisplay() {
+  const filterArmee = document.getElementById("filterArmee").value;
+  const filterArme = document.getElementById("filterArme").value;
+  const filterUnite = document.getElementById("filterUnite").value;
+  const searchText = document.getElementById("searchInput").value.toLowerCase();
 
-  const filtered = data.filter(item =>
-    (!armee || item["Ton stage appartient à :"] === armee) &&
-    (!unite || item["Unité"] === unite) &&
-    (
-      (item["Descriptif de ton stage"] || "").toLowerCase().includes(keyword) ||
-      (item["Ton poste durant le stage"] || "").toLowerCase().includes(keyword) ||
-      (item["Quelle ecole de formation ?"] || "").toLowerCase().includes(keyword)
-    )
-  );
+  const filtered = data.filter(item => {
+    const matchesArmee = !filterArmee || item["Armee"] === filterArmee;
+    const matchesArme = !filterArme || item["Arme"] === filterArme;
+    const matchesUnite = !filterUnite || item["Unité"] === filterUnite;
+
+    // Recherche texte dans plusieurs champs clés
+    const haystack = (item["Descriprif"] + " " + item["Nom"] + " " + item["Prenom"] + " " + item["Poste"] + " " + item["Ecole"]).toLowerCase();
+
+    const matchesSearch = haystack.includes(searchText);
+
+    return matchesArmee && matchesArme && matchesUnite && matchesSearch;
+  });
 
   displayData(filtered);
 }
+
+// Événements filtres
+document.getElementById("filterArmee").addEventListener("change", filterAndDisplay);
+document.getElementById("filterArme").addEventListener("change", filterAndDisplay);
+document.getElementById("filterUnite").addEventListener("change", filterAndDisplay);
+document.getElementById("searchInput").addEventListener("input", filterAndDisplay);
+
+fetchData();
 </script>
 
 </body>
