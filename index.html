@@ -1,1 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Avis Stages Militaires</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+    .hidden { display: none; }
+    .avis { background: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    select, input[type="text"] { padding: 5px; margin-right: 10px; }
+    .filter-bar { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<div id="login">
+  <h2>Connexion</h2>
+  <p>Mot de passe requis :</p>
+  <input type="password" id="passwordInput">
+  <button onclick="checkPassword()">Entrer</button>
+</div>
+
+<div id="content" class="hidden">
+  <h1>Avis sur les stages militaires</h1>
+
+  <div class="filter-bar">
+    <input type="text" id="searchInput" placeholder="Recherche mot-clé">
+    <select id="anneeFilter"><option value="">Toutes les années</option></select>
+    <select id="armeeFilter"><option value="">Toutes les armées</option></select>
+    <select id="uniteFilter"><option value="">Toutes les unités</option></select>
+    <button onclick="applyFilters()">Filtrer</button>
+  </div>
+
+  <div id="avisContainer"></div>
+</div>
+
+<script>
+const PASSWORD = "stage2025"; // À personnaliser
+const API_URL = "https://sheetdb.io/api/v1/csdz4fr72xxpy"; // À personnaliser
+
+function checkPassword() {
+  const input = document.getElementById("passwordInput").value;
+  if (input === PASSWORD) {
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("content").classList.remove("hidden");
+    fetchData();
+  } else {
+    alert("Mot de passe incorrect.");
+  }
+}
+
+let data = [];
+
+function fetchData() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(json => {
+      data = json;
+      populateFilters(data);
+      displayData(data);
+    });
+}
+
+function populateFilters(data) {
+  const annees = [...new Set(data.map(item => item["Année du stage"]))].sort();
+  const armees = [...new Set(data.map(item => item["Armée"]))].sort();
+  const unites = [...new Set(data.map(item => item["Unité"]))].sort();
+
+  const fill = (id, list) => {
+    const el = document.getElementById(id);
+    list.forEach(val => {
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = val;
+      el.appendChild(opt);
+    });
+  };
+
+  fill("anneeFilter", annees);
+  fill("armeeFilter", armees);
+  fill("uniteFilter", unites);
+}
+
+function displayData(dataset) {
+  const container = document.getElementById("avisContainer");
+  container.innerHTML = "";
+  dataset.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "avis";
+    div.innerHTML = `
+      <strong>${item["Année du stage"]} - ${item["Armée"]} - ${item["Unité"]}</strong><br>
+      <em>${item["Poste"] || "Poste inconnu"} – ${item["Ecole"] || "École non précisée"}</em><br>
+      <p>${item["Descriptif"]}</p>
+      <small>${(item["Prenom"] || "") + " " + (item["Nom"] || "Anonyme")}</small>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function applyFilters() {
+  const annee = document.getElementById("anneeFilter").value;
+  const armee = document.getElementById("armeeFilter").value;
+  const unite = document.getElementById("uniteFilter").value;
+  const keyword = document.getElementById("searchInput").value.toLowerCase();
+
+  const filtered = data.filter(item =>
+    (!annee || item["Année du stage"] === annee) &&
+    (!armee || item["Armée"] === armee) &&
+    (!unite || item["Unité"] === unite) &&
+    (
+      (item["Descriptif"] || "").toLowerCase().includes(keyword) ||
+      (item["Poste"] || "").toLowerCase().includes(keyword) ||
+      (item["Ecole"] || "").toLowerCase().includes(keyword)
+    )
+  );
+
+  displayData(filtered);
+}
+</script>
+
+</body>
+</html>
 
