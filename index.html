@@ -27,7 +27,8 @@
   <div class="filter-bar">
     <input type="text" id="searchInput" placeholder="Recherche mot-clé">
     <select id="anneeFilter"><option value="">Toutes les années</option></select>
-    <select id="armeeFilter"><option value="">Toutes les armées</option></select>
+    <select id="armeeFilter" onchange="updateCorpsFilter()"><option value="">Toutes les armées</option></select>
+    <select id="corpsFilter" onchange="updateUniteFilter()"><option value="">Tous les corps</option></select>
     <select id="uniteFilter"><option value="">Toutes les unités</option></select>
     <button onclick="applyFilters()">Filtrer</button>
   </div>
@@ -36,8 +37,8 @@
 </div>
 
 <script>
-const PASSWORD = "stage2025"; // À personnaliser
-const API_URL = "https://script.google.com/macros/s/AKfycbyfQQuDAhzLm9ruzuply-oahqEJBgl0QM-hFt_rVlBXUmj8-itqGAs0h6KwYS79qxVY-w/exec"; // À personnaliser
+const PASSWORD = "stage2025"; // Mot de passe à modifier si besoin
+const API_URL = "https://script.google.com/macros/s/AKfycbyfQQuDAhzLm9ruzuply-oahqEJBgl0QM-hFt_rVlBXUmj8-itqGAs0h6KwYS79qxVY-w/exec";
 
 function checkPassword() {
   const input = document.getElementById("passwordInput").value;
@@ -51,21 +52,39 @@ function checkPassword() {
 }
 
 let data = [];
+let armeeToCorps = {};
+let corpsToUnites = {};
 
 function fetchData() {
   fetch(API_URL)
     .then(res => res.json())
     .then(json => {
       data = json;
-      populateFilters(data);
+      buildHierarchies(data);
+      populateInitialFilters(data);
       displayData(data);
     });
 }
 
-function populateFilters(data) {
+function buildHierarchies(data) {
+  armeeToCorps = {};
+  corpsToUnites = {};
+  data.forEach(item => {
+    const armee = item["Armée"];
+    const corps = item["Corps d'armée"];
+    const unite = item["Unité"];
+
+    if (!armeeToCorps[armee]) armeeToCorps[armee] = new Set();
+    armeeToCorps[armee].add(corps);
+
+    if (!corpsToUnites[corps]) corpsToUnites[corps] = new Set();
+    corpsToUnites[corps].add(unite);
+  });
+}
+
+function populateInitialFilters(data) {
   const annees = [...new Set(data.map(item => item["Année du stage"]))].sort();
   const armees = [...new Set(data.map(item => item["Armée"]))].sort();
-  const unites = [...new Set(data.map(item => item["Unité"]))].sort();
 
   const fill = (id, list) => {
     const el = document.getElementById(id);
@@ -79,7 +98,38 @@ function populateFilters(data) {
 
   fill("anneeFilter", annees);
   fill("armeeFilter", armees);
-  fill("uniteFilter", unites);
+}
+
+function updateCorpsFilter() {
+  const armee = document.getElementById("armeeFilter").value;
+  const corpsSelect = document.getElementById("corpsFilter");
+  const uniteSelect = document.getElementById("uniteFilter");
+  corpsSelect.innerHTML = '<option value="">Tous les corps</option>';
+  uniteSelect.innerHTML = '<option value="">Toutes les unités</option>';
+
+  if (armee && armeeToCorps[armee]) {
+    [...armeeToCorps[armee]].sort().forEach(corps => {
+      const opt = document.createElement("option");
+      opt.value = corps;
+      opt.textContent = corps;
+      corpsSelect.appendChild(opt);
+    });
+  }
+}
+
+function updateUniteFilter() {
+  const corps = document.getElementById("corpsFilter").value;
+  const uniteSelect = document.getElementById("uniteFilter");
+  uniteSelect.innerHTML = '<option value="">Toutes les unités</option>';
+
+  if (corps && corpsToUnites[corps]) {
+    [...corpsToUnites[corps]].sort().forEach(unite => {
+      const opt = document.createElement("option");
+      opt.value = unite;
+      opt.textContent = unite;
+      uniteSelect.appendChild(opt);
+    });
+  }
 }
 
 function displayData(dataset) {
@@ -101,12 +151,14 @@ function displayData(dataset) {
 function applyFilters() {
   const annee = document.getElementById("anneeFilter").value;
   const armee = document.getElementById("armeeFilter").value;
+  const corps = document.getElementById("corpsFilter").value;
   const unite = document.getElementById("uniteFilter").value;
   const keyword = document.getElementById("searchInput").value.toLowerCase();
 
   const filtered = data.filter(item =>
     (!annee || item["Année du stage"] === annee) &&
     (!armee || item["Armée"] === armee) &&
+    (!corps || item["Corps d'armée"] === corps) &&
     (!unite || item["Unité"] === unite) &&
     (
       (item["Descriptif"] || "").toLowerCase().includes(keyword) ||
@@ -121,4 +173,3 @@ function applyFilters() {
 
 </body>
 </html>
-
