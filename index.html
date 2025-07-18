@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pages Grises</title>
+<title>Avis Stages Militaires</title>
 <style>
   body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 10px; }
   h1 { text-align: center; }
@@ -16,7 +16,16 @@
 </head>
 <body>
 
-<h1>Pages grises</h1>
+<script>
+  const PASSWORD = "bspp";
+  let tentative = prompt("Mot de passe requis pour accéder au site :");
+  if (tentative !== PASSWORD) {
+    document.body.innerHTML = "<h1>Accès refusé</h1><p>Mot de passe incorrect.</p>";
+    throw new Error("Accès refusé");
+  }
+</script>
+
+<h1>Avis des Stages Militaires</h1>
 
 <div class="filters">
   <label>Armée:
@@ -42,7 +51,7 @@
 <div id="avisContainer">Chargement des avis...</div>
 
 <script>
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxRntymbO_oewl-20Z3Nedmn2gA_o_wp5Uv06JXHYaPHOOtzEEEQcAmcsbINwZY3xTh/exec";
+const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxQFgehizkaeeDdIgSpG3qJD4KrtqQSOvtWAGAHmOpOg2lbE1RDB4U2_WTRTsES3coz/exec";
 
 let data = [];
 
@@ -77,9 +86,7 @@ function buildFilters(dataset) {
 
 function populateSelect(id, set) {
   const select = document.getElementById(id);
-  // Supprime toutes les options sauf la première
   while(select.options.length > 1) select.remove(1);
-
   Array.from(set).sort().forEach(value => {
     const option = document.createElement("option");
     option.value = value;
@@ -124,9 +131,7 @@ function filterAndDisplay() {
     const matchesArme = !filterArme || item["Arme"] === filterArme;
     const matchesUnite = !filterUnite || item["Unité"] === filterUnite;
 
-    // Recherche texte dans plusieurs champs clés
     const haystack = (item["Descriprif"] + " " + item["Nom"] + " " + item["Prenom"] + " " + item["Poste"] + " " + item["Ecole"]).toLowerCase();
-
     const matchesSearch = haystack.includes(searchText);
 
     return matchesArmee && matchesArme && matchesUnite && matchesSearch;
@@ -135,7 +140,6 @@ function filterAndDisplay() {
   displayData(filtered);
 }
 
-// Événements filtres
 document.getElementById("filterArmee").addEventListener("change", filterAndDisplay);
 document.getElementById("filterArme").addEventListener("change", filterAndDisplay);
 document.getElementById("filterUnite").addEventListener("change", filterAndDisplay);
