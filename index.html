@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Avis Stages Militaires</title>
+  <title>Pages Grises</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 10px; }
     h1 { text-align: center; }
@@ -16,7 +16,7 @@
 </head>
 <body>
 
-<h1>Avis des Stages Militaires</h1>
+<h1>Témoignages</h1>
 
 <div id="login">
   <label for="password">Mot de passe :</label>
@@ -50,7 +50,7 @@
 </div>
 
 <script>
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxQFgehizkaeeDdIgSpG3qJD4KrtqQSOvtWAGAHmOpOg2lbE1RDB4U2_WTRTsES3coz/exec";
+const GOOGLE_SHEET_API_LINK = "https://script.google.com/macros/s/AKfycbxQFgehizkaeeDdIgSpG3qJD4KrtqQSOvtWAGAHmOpOg2lbE1RDB4U2_WTRTsES3coz/exec";
 const PASSWORD = "bspp";
 let data = [];
 
@@ -67,7 +67,7 @@ function checkPassword() {
 
 async function fetchData() {
   try {
-    const response = await fetch(GOOGLE_SHEET_URL);
+    const response = await fetch(GOOGLE_SHEET_API_LINK);
     const json = await response.json();
     data = json.records || [];
     buildFilters(data);
